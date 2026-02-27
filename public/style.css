@@ -1,0 +1,378 @@
+:root {
+    --text: black;
+    --text-secondary: #555;
+    --text-tertiary: #333;
+    --bg: white;
+    --border: #ddd;
+    --button: #efefef;
+    --button-hover: #cdcfd2;
+    --content: #f4f4f4;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+    transition: 0.4s;
+    color: var(--text);
+}
+
+input[type="text"] {
+    border-radius: 7px 2px 2px 7px;
+    border-style: solid;
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    transition: 0.4s;
+}
+
+#submitButton, #updateUsernameButton {
+    border-radius: 2px 7px 7px 2px;
+    border-style: solid;
+    border-color: var(--border);
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    transition: 0.4s;
+}
+
+button:hover:not(:disabled){
+    background-color: var(--button-hover);
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+    max-width: 600px;
+}
+
+#textField {
+    width: calc(100% - 100px);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+#submitButton {
+    padding: 10px;
+    cursor: pointer;
+}
+
+#textList {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+#textList li {
+    background-color: var(--content);
+    margin-bottom: 5px;
+    padding: 10px;
+    border: var(--border);
+    border-radius: 5px;
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    transition: 0.4s;
+    word-break: break-word;
+    line-break: auto;
+    text-align: left;
+}
+
+.messageTime {
+    color: var(--text-secondary);
+}
+
+#charCounter {
+    display: inline-block;
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    color: var(--text-secondary);
+    transform: translate(-330px, calc(-100% - 37px));
+    transition: 0.4s;
+}
+
+.profile {
+    margin-bottom: 20px;
+}
+
+#usernameField {
+    width: calc(100% - 161px);
+    padding: 10px;
+}
+
+#updateUsernameButton {
+    padding: 10px;
+    cursor: pointer;
+}
+
+#usernameDisplay {
+    font-size: 1.2em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    transition: 0.4s;
+}
+
+#darkModeSwitch {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+}
+
+h1 {
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+}
+
+h2 {
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+}
+
+#dot-canvas {
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: -9999;
+	pointer-events: auto;
+}
+
+/* ============================[[ TOAST NOTIFICATION SYSTEM ]]=============================== */
+
+.toast-container {
+    position: fixed;
+    top: 25px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+  
+.toast {
+    position: relative;
+    width: 320px;
+    border-radius: 12px;
+    background-color: #fff;
+    padding: 20px 35px 20px 25px;
+    box-shadow: 0 6px 20px -5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    overflow-x: hidden;
+    align-items: center;
+    transform: translateX(calc(100% + 30px));
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.35);
+}
+  
+.toast.active {
+    transform: translateX(0%);
+}
+  
+.toast .toast-content {
+    display: flex;
+    align-items: center;
+}
+  
+.toast-content .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 35px;
+    min-width: 35px;
+    font-size: 35px;
+    color: #fff;
+}
+  
+.toast-content .message {
+    display: flex;
+    flex-direction: column;
+    margin-left: 15px;
+}
+  
+.message .text {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-family: "Outfit", serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    text-align: left;
+}
+  
+.message .text.text-1 {
+    font-weight: 600;
+    color: var(--text-tertiary);
+}
+  
+.toast .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    padding: 5px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+  
+.toast .close:hover {
+    opacity: 1;
+}
+  
+.toast .progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+}
+  
+.toast .progress:before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    background-color: #4070f4;
+}
+  
+.progress.active:before {
+    animation: progress 5s linear forwards;
+}
+  
+@keyframes progress {
+    100% {
+      right: 100%;
+    }
+}
+  
+/* Toast Type Colors */
+.toast.success .icon { color: rgb(25 135 84); }
+.toast.error .icon { color: rgb(220 53 69); }
+.toast.warning .icon { color: rgb(255 193 7); }
+.toast.info .icon { color: rgb(13 202 240); }
+
+.toast.success .progress:before { background: rgb(25 135 84); }
+.toast.error .progress:before { background: rgb(220 53 69); }
+.toast.warning .progress:before { background: rgb(255 193 7); }
+.toast.info .progress:before { background: rgb(13 202 240); }
+  
+/* ============================[[ DARK MODE TOGGLE SWITCH ]]=============================== */
+
+.switch {
+    font-size: 17px;
+    position: relative;
+    display: inline-block;
+    width: 62px;
+    height: 35px;
+}
+   
+.switch input {
+    opacity: 1;
+    width: 0;
+    height: 0;
+}
+   
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    background: #1d1e22;
+    transition: .4s;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+}
+   
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 1.9em;
+    width: 1.9em;
+    border-radius: 16px;
+    left: 1.2px;
+    top: 0;
+    bottom: 0;
+    background-color: var(--bg);
+    box-shadow: 0 2px 5px #999999;
+    transition: .4s;
+}
+   
+input:checked + .slider {
+    background-color: white;
+    border: 1px solid transparent;
+}
+   
+input:checked + .slider:before {
+    transform: translateX(1.5em);
+}
+
+/* ============================[[ DARK MODE ]]=============================== */
+
+body.darkMode {
+    --text: white;
+    --text-secondary: #999;
+    --bg: #1d1e22;
+    --border: #2f2f2f;
+    --input: #252525;
+    --button: #373739;
+    --button-hover: #252525;
+    --content: rgb(41, 41, 43);
+    --text-tertiary: #ddd;
+
+    background-color: var(--bg);
+    color: var(--text);
+}
+body.darkMode #textList li {
+    background-color: var(--content);
+    border-color: var(--border);
+}
+body.darkMode #usernameDisplay, body.darkMode #charCounter {
+    color: var(--text-secondary);
+}
+body.darkMode input[type="text"] {
+    background-color: var(--input);
+    border-color: var(--border);
+    color: var(--text);
+}
+body.darkMode button {
+    background-color: var(--button);
+    border-color: var(--border);
+    color: var(--text);
+}
+body.darkMode button:hover:not(:disabled) {
+    background-color: var(--button-hover);
+}
+
+body.darkMode .toast {
+    background-color: #454545;
+}
+
+body.darkMode .text.text-1 {
+    color: var(--text);
+}
+
+body.darkMode .text.text-2 {
+    color: var(--text-tertiary);
+}
+
+body.darkMode .toast .icon {
+    background-color: var(--text);
+    border-radius: 50%;
+}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Text Sharing with Profiles</title>
+    <title>Real-Time Chat Rooms</title>
     <link rel="stylesheet" href="style.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,25 +17,76 @@
 <body>
     <canvas id="dot-canvas"></canvas>
     <div class="toast-container"></div>
-    <div class="container">
-        <h1>Real-Time Messaging</h1>
-        <div class="profile">
-            <p id="usernameDisplay">You are: <span id="currentUsername"></span></p>
-            <input type="text" id="usernameField" placeholder="Enter username here..." />
-            <button id="updateUsernameButton">Update Username</button>
-        </div>
-        <input type="text" id="textField" placeholder="Enter text here..." />
-        <button id="submitButton">Submit</button>
-        <p id="charCounter">0/500</p>
-        <h2>Submitted Text:</h2>
-        <ul id="textList"></ul>
+
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="bi bi-chat-dots-fill"></i> Rooms</h2>
+                <button class="sidebar-toggle-close" id="sidebarCloseBtn" title="Close sidebar">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="room-create">
+                <input type="text" id="newRoomInput" placeholder="New room name..." maxlength="30" />
+                <button id="createRoomBtn" title="Create room"><i class="bi bi-plus-lg"></i></button>
+            </div>
+            <ul class="room-list" id="roomList"></ul>
+            <div class="sidebar-footer">
+                <div class="profile-section">
+                    <div class="profile-avatar" id="profileAvatar"></div>
+                    <div class="profile-info">
+                        <span id="currentUsername" class="profile-name"></span>
+                        <button class="profile-edit-btn" id="editUsernameBtn" title="Edit username"><i class="bi bi-pencil-fill"></i></button>
+                    </div>
+                </div>
+                <div class="username-edit" id="usernameEditSection" style="display:none;">
+                    <input type="text" id="usernameField" placeholder="Enter username..." />
+                    <button id="updateUsernameButton"><i class="bi bi-check-lg"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <div class="chat-header">
+                <button class="sidebar-toggle" id="sidebarToggleBtn" title="Toggle sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="chat-header-info">
+                    <h1 id="chatRoomTitle"><i class="bi bi-hash"></i> <span>Select a room</span></h1>
+                    <span class="chat-user-count" id="chatUserCount"></span>
+                </div>
+                <div class="chat-header-actions">
+                    <div id="darkModeSwitch">
+                        <p class="switch-label">Dark Mode</p>
+                        <label class="switch">
+                            <input type="checkbox" onchange="toggleDarkMode(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-empty-state" id="chatEmptyState">
+                    <i class="bi bi-chat-square-text-fill"></i>
+                    <h3>Welcome to Real-Time Chat</h3>
+                    <p>Select a room from the sidebar to start chatting</p>
+                </div>
+                <ul id="textList"></ul>
+            </div>
+
+            <div class="chat-input-area" id="chatInputArea" style="display:none;">
+                <div class="chat-input-wrapper">
+                    <input type="text" id="textField" placeholder="Type a message..." />
+                    <span id="charCounter">0/500</span>
+                    <button id="submitButton" title="Send message"><i class="bi bi-send-fill"></i></button>
+                </div>
+            </div>
+        </main>
     </div>
-    <div id="darkModeSwitch">
-        <label class="switch">
-            <input type="checkbox" onchange="toggleDarkMode(this)">
-            <span class="slider"></span>
-        </label>
-    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>

@@ -1,33 +1,34 @@
 const socket = io();
 
-// Generate or retrieve a unique user ID and username
+// ========================[[ USER PROFILE ]]=============================
+
 const getUserProfile = () => {
     let userId = localStorage.getItem('userId');
     let username = localStorage.getItem('username');
-    let darkMode = localStorage.getItem('darkMode') === 'true'; // Default to false if not set
+    let darkMode = localStorage.getItem('darkMode') === 'true';
+    let lastRoom = localStorage.getItem('lastRoom') || 'General';
 
     if (!userId) {
         userId = `user-${Date.now()}`;
         username = `User${Math.floor(Math.random() * 10000)}`;
         localStorage.setItem('userId', userId);
         localStorage.setItem('username', username);
-        localStorage.setItem('darkMode', darkMode); // Save default
+        localStorage.setItem('darkMode', darkMode);
     }
 
-    return { userId, username, darkMode };
+    return { userId, username, darkMode, lastRoom };
 };
 
-// Update username in profile and DOM
 const updateUserProfile = (newUsername) => {
     const sanitizedUsername = newUsername.trim();
     if (sanitizedUsername) {
         localStorage.setItem('username', sanitizedUsername);
         profile.username = sanitizedUsername;
         document.getElementById('currentUsername').textContent = sanitizedUsername;
+        updateAvatar(sanitizedUsername);
     }
 };
 
-// Update dark mode preference in profile and DOM
 const toggleDarkMode = (switchElement) => {
     const isChecked = switchElement.checked;
     profile.darkMode = isChecked;
@@ -35,9 +36,17 @@ const toggleDarkMode = (switchElement) => {
     document.body.classList.toggle('darkMode', isChecked);
 };
 
+const updateAvatar = (name) => {
+    const avatar = document.getElementById('profileAvatar');
+    if (avatar && name) {
+        avatar.textContent = name.charAt(0).toUpperCase();
+    }
+};
+
 // Initialize profile
 const profile = getUserProfile();
 document.getElementById('currentUsername').textContent = profile.username;
+updateAvatar(profile.username);
 
 // Apply dark mode preference on page load
 if (profile.darkMode) {
@@ -45,153 +54,277 @@ if (profile.darkMode) {
     document.querySelector('#darkModeSwitch input').checked = true;
 }
 
-// DOM Elements
+// ========================[[ DOM ELEMENTS ]]=============================
+
 const textField = document.getElementById('textField');
 const submitButton = document.getElementById('submitButton');
 const usernameField = document.getElementById('usernameField');
 const updateUsernameButton = document.getElementById('updateUsernameButton');
+const editUsernameBtn = document.getElementById('editUsernameBtn');
+const usernameEditSection = document.getElementById('usernameEditSection');
 const textList = document.getElementById('textList');
-const timeList = document.getElementById('timeList');
 const charCounter = document.getElementById('charCounter');
+const chatEmptyState = document.getElementById('chatEmptyState');
+const chatInputArea = document.getElementById('chatInputArea');
+const chatRoomTitle = document.getElementById('chatRoomTitle');
+const chatUserCount = document.getElementById('chatUserCount');
+const chatMessages = document.getElementById('chatMessages');
+const roomListEl = document.getElementById('roomList');
+const newRoomInput = document.getElementById('newRoomInput');
+const createRoomBtn = document.getElementById('createRoomBtn');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
 const charLimit = 500;
 
-// Update username on button click
-updateUsernameButton.onclick = updateUsername;
-// Update username on enter key
+let currentRoom = null;
+
+// ========================[[ USERNAME EDITING ]]=============================
+
+editUsernameBtn.onclick = () => {
+    const isVisible = usernameEditSection.style.display !== 'none';
+    usernameEditSection.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) {
+        usernameField.focus();
+    }
+};
+
+updateUsernameButton.onclick = commitUsernameChange;
 usernameField.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') updateUsername();
+    if (e.key === 'Enter') commitUsernameChange();
 });
-// Updates username locally
-function updateUsername() {
-    const newUsername = usernameField.value;
-    updateUserProfile(newUsername);
-    usernameField.value = ''; // Clear the username input
+
+function commitUsernameChange() {
+    const newUsername = usernameField.value.trim();
+    if (newUsername) {
+        updateUserProfile(newUsername);
+        usernameField.value = '';
+        usernameEditSection.style.display = 'none';
+        showToast(`Username updated to "${newUsername}"`, 'success');
+    }
 }
 
-// Submit message on button click
+// ========================[[ MESSAGING ]]=============================
+
 submitButton.onclick = submitMessage;
-// Allow hitting enter to submit message
 textField.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && textField.value.length <= charLimit) submitMessage();
 });
-// Function to submit messages to all users
+
 function submitMessage() {
     const text = textField.value.trim();
-    charCounter.textContent = `0/${charLimit}`;
-    if (text && text.length <= charLimit) {
+    if (text && text.length <= charLimit && currentRoom) {
         socket.emit('textInput', { userId: profile.userId, username: profile.username, text });
-        textField.value = ''; // Clear input field
+        textField.value = '';
+        charCounter.textContent = `0/${charLimit}`;
+        charCounter.classList.remove('over-limit');
     }
 }
 
-// Limit text field input to set characters in charLimit
 textField.addEventListener('input', () => {
-    charCounter.textContent = `${textField.value.length}/${charLimit}`;
+    const len = textField.value.length;
+    charCounter.textContent = `${len}/${charLimit}`;
 
-    if (textField.value.length > charLimit) {
-        // over limit
+    if (len > charLimit) {
         submitButton.disabled = true;
-
-        charCounter.style.color = "crimson !important";
-        submitButton.style.cursor = "not-allowed";
+        charCounter.classList.add('over-limit');
+        submitButton.style.cursor = 'not-allowed';
     } else {
-        // under limit
         submitButton.disabled = false;
-
-        document.body.classList.contains('darkMode')
-            ? charCounter.style.color = "#999999"
-            : charCounter.style.color = "#555";
-        submitButton.style.cursor = "pointer";
+        charCounter.classList.remove('over-limit');
+        submitButton.style.cursor = 'pointer';
     }
 });
 
-// Listen for updates from the server
-socket.on('textUpdate', (data) => {
-    console.log(data);
-    const { username, text, timestamp } = data;
+// ========================[[ CHATROOMS ]]=============================
 
-    // Create a list item for the message
-    const messageLi = document.createElement('li');
-    messageLi.innerHTML = `<span class="messageTime">${timestamp} |</span> <span class="messageUsername">${username}</span>: <span class="messageText">${text}</span>`;
-    textList.appendChild(messageLi);
+// Render room list
+socket.on('roomList', (rooms) => {
+    roomListEl.innerHTML = '';
+    rooms.forEach(room => {
+        const li = document.createElement('li');
+        li.className = currentRoom === room.name ? 'active' : '';
+        li.innerHTML = `
+            <div class="room-name">
+                <i class="bi bi-hash"></i>
+                <span>${escapeHtml(room.name)}</span>
+            </div>
+            <span class="room-user-count">${room.userCount}</span>
+        `;
+        li.onclick = () => joinRoom(room.name);
+        roomListEl.appendChild(li);
+    });
 
-    // Create a separate list item for the timestamp
-    /*const timestampLi = document.createElement('li');
-    timestampLi.textContent = `${timestamp}`;
-    timeList.appendChild(timestampLi);*/
+    // Update active room user count in header
+    if (currentRoom) {
+        const active = rooms.find(r => r.name === currentRoom);
+        if (active) {
+            chatUserCount.textContent = `${active.userCount} ${active.userCount === 1 ? 'member' : 'members'} online`;
+        }
+    }
 });
 
-// Listen for errors and output them in the console
-socket.on('error', (data => {
-    showToast(data.message, "error");
-}));
+// Join a room
+function joinRoom(roomName) {
+    if (currentRoom === roomName) return;
+    socket.emit('joinRoom', { roomName, userId: profile.userId, username: profile.username });
+    closeSidebar();
+}
+
+// Server confirms join
+socket.on('joinedRoom', (data) => {
+    currentRoom = data.roomName;
+    localStorage.setItem('lastRoom', currentRoom);
+
+    // Update UI
+    chatRoomTitle.innerHTML = `<i class="bi bi-hash"></i> <span>${escapeHtml(data.roomName)}</span>`;
+    chatEmptyState.style.display = 'none';
+    chatInputArea.style.display = 'block';
+    textList.innerHTML = ''; // Clear messages from previous room
+    textField.focus();
+
+    // Highlight active room in sidebar
+    document.querySelectorAll('.room-list li').forEach(li => {
+        const name = li.querySelector('.room-name span').textContent;
+        li.className = name === currentRoom ? 'active' : '';
+    });
+});
+
+// Auto-join after room creation
+socket.on('autoJoinRoom', (data) => {
+    joinRoom(data.roomName);
+});
+
+// Create room
+createRoomBtn.onclick = createRoom;
+newRoomInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') createRoom();
+});
+
+function createRoom() {
+    const name = newRoomInput.value.trim();
+    if (name) {
+        socket.emit('createRoom', { roomName: name, userId: profile.userId, username: profile.username });
+        newRoomInput.value = '';
+    }
+}
+
+// ========================[[ MESSAGE RENDERING ]]=============================
+
+socket.on('textUpdate', (data) => {
+    const { username, text, timestamp } = data;
+
+    const messageLi = document.createElement('li');
+    messageLi.innerHTML = `<span class="messageTime">${timestamp}</span> <span class="messageUsername">${escapeHtml(username)}</span> <span class="messageText">${escapeHtml(text)}</span>`;
+    textList.appendChild(messageLi);
+
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+socket.on('systemMessage', (data) => {
+    const li = document.createElement('li');
+    li.className = 'system-message';
+    li.textContent = `${data.timestamp} — ${data.text}`;
+    textList.appendChild(li);
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+// ========================[[ ERROR HANDLING ]]=============================
+
+socket.on('error', (data) => {
+    showToast(data.message, 'error');
+});
+
+// ========================[[ SIDEBAR TOGGLE (MOBILE) ]]=============================
+
+// Create overlay element for mobile
+const overlay = document.createElement('div');
+overlay.className = 'sidebar-overlay';
+document.body.appendChild(overlay);
+
+sidebarToggleBtn.onclick = () => {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+};
+
+function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+}
+
+sidebarCloseBtn.onclick = closeSidebar;
+overlay.onclick = closeSidebar;
 
 // ========================[[ TOAST SYSTEM ]]=============================
-function showToast(message, type = "success") {
-    const toastContainer = document.querySelector(".toast-container");
 
-    const toast = document.createElement("div");
-    toast.classList.add("toast", type);
+function showToast(message, type = 'success') {
+    const toastContainer = document.querySelector('.toast-container');
+
+    const toast = document.createElement('div');
+    toast.classList.add('toast', type);
 
     toast.innerHTML = `
         <div class="toast-content">
-        <i class="bi icon bi-${getIcon(type)}"></i>
-        <div class="message">
-            <span class="text text-1">${capitalize(type)}</span>
-            <span class="text text-2">${message}</span>
-        </div>
+            <i class="bi icon bi-${getIcon(type)}"></i>
+            <div class="message">
+                <span class="text text-1">${capitalize(type)}</span>
+                <span class="text text-2">${escapeHtml(message)}</span>
+            </div>
         </div>
         <i class="bi bi-x-lg close"></i>
         <div class="progress active"></div>
     `;
 
     toastContainer.appendChild(toast);
-    let showToast = setTimeout(() => {
+    const showTimeout = setTimeout(() => {
         void toast.offsetHeight;
-        toast.classList.add("active");
+        toast.classList.add('active');
     }, 1);
 
-    const progress = toast.querySelector(".progress");
-    const closeIcon = toast.querySelector(".close");
+    const closeIcon = toast.querySelector('.close');
 
-    // Auto-remove toast after 5s
     const timer1 = setTimeout(() => {
-        toast.classList.remove("active");
+        toast.classList.remove('active');
     }, 5000);
 
     const timer2 = setTimeout(() => {
-        progress.classList.remove("active");
+        toast.querySelector('.progress').classList.remove('active');
         setTimeout(() => toast.remove(), 400);
     }, 5300);
 
-    // Manual close
-    closeIcon.addEventListener("click", () => {
-        toast.classList.remove("active");
+    closeIcon.addEventListener('click', () => {
+        toast.classList.remove('active');
         clearTimeout(timer1);
         clearTimeout(timer2);
-        clearTimeout(showToast);
+        clearTimeout(showTimeout);
         setTimeout(() => toast.remove(), 400);
     });
 }
+
 function getIcon(type) {
     switch (type) {
-        case "success": return "check-circle-fill";
-        case "error": return "x-circle-fill";
-        case "warning": return "exclamation-triangle-fill";
-        case "info": return "info-circle-fill";
-        default: return "check-circle-fill";
+        case 'success': return 'check-circle-fill';
+        case 'error': return 'x-circle-fill';
+        case 'warning': return 'exclamation-triangle-fill';
+        case 'info': return 'info-circle-fill';
+        default: return 'check-circle-fill';
     }
 }
+
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
+// ========================[[ LENIS SMOOTH SCROLL ]]=============================
 
-
-
-
-// Lenis smooth scroll stuff
 const lenis = new Lenis({
     lerp: 0.2,
     smooth: true,
@@ -203,35 +336,33 @@ function raf(time) {
 }
 requestAnimationFrame(raf);
 
+// ========================[[ DOT CANVAS BACKGROUND ]]=============================
 
-
-
-// set background dot effects;
 const dotScaleFactor = 9;
 const dotScaleRadius = 0.4;
 const dotSpacing = 30;
 const dotRadius = 1.1;
 
-// initialize canvas stuff
 const canvas = document.getElementById('dot-canvas');
 const ctx = canvas.getContext('2d');
 const dots = [];
 
 function populateDots() {
-    const numDotsX = Math.floor(window.innerWidth / dotSpacing); // Number of dots based on width
-    const numDotsY = Math.floor(window.innerHeight / dotSpacing); // Number of dots based on height
-    dots.length = 0; // Clear existing dots if any
+    const numDotsX = Math.floor(window.innerWidth / dotSpacing);
+    const numDotsY = Math.floor(window.innerHeight / dotSpacing);
+    dots.length = 0;
 
     for (let i = 0; i < numDotsX; i++) {
         for (let j = 0; j < numDotsY; j++) {
             dots.push({
                 x: i * dotSpacing + dotSpacing / 2,
-                y: j * dotSpacing+ dotSpacing / 2,
+                y: j * dotSpacing + dotSpacing / 2,
                 radius: dotRadius
             });
         }
     }
 }
+
 function drawDots() {
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     dots.forEach(dot => {
@@ -241,24 +372,34 @@ function drawDots() {
         ctx.fill();
     });
 }
+
 function updateCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     populateDots();
     drawDots();
 }
+
 window.addEventListener('resize', updateCanvas);
-window.addEventListener('mousemove', function(e) {
+window.addEventListener('mousemove', function (e) {
     dots.forEach(dot => {
         const dx = e.clientX - dot.x;
         const dy = e.clientY - dot.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        dot.radius = dotRadius * (1 + Math.max(0, dotScaleRadius - distance / 100) * dotScaleFactor); // Adjust radius based on distance
+        dot.radius = dotRadius * (1 + Math.max(0, dotScaleRadius - distance / 100) * dotScaleFactor);
     });
     drawDots();
 });
-updateCanvas(); // Initial setup and draw
+updateCanvas();
 
-/* TO DO:
+// ========================[[ AUTO-JOIN LAST ROOM ]]=============================
 
-MOD index.html so that the charLimit declared in this script is reflected on first page load */
+// Wait for the room list to arrive, then auto-join
+let hasAutoJoined = false;
+socket.on('roomList', () => {
+    if (!hasAutoJoined) {
+        hasAutoJoined = true;
+        const roomToJoin = profile.lastRoom || 'General';
+        joinRoom(roomToJoin);
+    }
+});
